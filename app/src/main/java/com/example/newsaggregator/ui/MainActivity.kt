@@ -15,24 +15,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.newsaggregator.data.rss.RssFeed
+import com.example.newsaggregator.data.rss.dto.ChannelDto
+import com.example.newsaggregator.data.rss.dto.ImageDto
+import com.example.newsaggregator.data.rss.dto.RssDto
 import com.example.newsaggregator.ui.theme.NewsAggregatorTheme
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import nl.adaptivity.xmlutil.serialization.XML
-import okhttp3.MediaType
-import retrofit2.Retrofit
+import javax.inject.Inject
 
-private val retrofit = Retrofit.Builder()
-    .baseUrl("https://www.theguardian.com")
-    .addConverterFactory(
-        XML.asConverterFactory(
-            MediaType.get("application/xml; charset=UTF8")
-        )
-    ).build()
-
-private val guardian = retrofit.create(RssFeed::class.java)
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var rssFeed: RssFeed
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     Greeting(
                         text = "Press me!",
                         modifier = Modifier.padding(innerPadding),
-                        guardian,
+                        feed = rssFeed,
                     )
                 }
             }
@@ -76,7 +71,6 @@ fun Greeting(
             text = text,
             modifier = modifier,
         )
-
     }
 }
 
@@ -84,9 +78,30 @@ fun Greeting(
 @Composable
 fun GreetingPreview() {
     NewsAggregatorTheme {
+        val previewRssFeed = object : RssFeed {
+            override suspend fun getRss(query: String): RssDto {
+                return RssDto(
+                    version = "2.0",
+                    channel = ChannelDto(
+                        title = "Preview",
+                        link = "",
+                        description = "",
+                        language = "",
+                        copyright = "",
+                        pubDate = "",
+                        dcDate = "",
+                        dcLanguage = "",
+                        dcRights = "",
+                        image = ImageDto("", "", ""),
+                        items = emptyList()
+                    )
+                )
+            }
+        }
+        
         Greeting(
             text = "Press me!",
-            feed = guardian
+            feed = previewRssFeed
         )
     }
 }
