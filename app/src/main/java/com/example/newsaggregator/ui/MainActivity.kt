@@ -330,19 +330,38 @@ fun NewsItemCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        newsItem.categories.take(3).forEach { category ->
-                            Surface(
-                                modifier = Modifier.padding(vertical = 2.dp),
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.secondaryContainer
-                            ) {
-                                Text(
-                                    text = category,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                        var remainingWidth = 0
+                        var isOverflow = false
+                        
+                        newsItem.categories.take(3).forEachIndexed { index, category ->
+                            if (!isOverflow) {
+                                Surface(
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Text(
+                                        text = category,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        maxLines = 1,
+                                        onTextLayout = { textLayoutResult ->
+                                            if (textLayoutResult.hasVisualOverflow) {
+                                                isOverflow = true
+                                            }
+                                        }
+                                    )
+                                }
                             }
+                        }
+                        
+                        if (isOverflow) {
+                            Text(
+                                text = "...",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
