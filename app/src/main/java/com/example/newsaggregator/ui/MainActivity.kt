@@ -1,33 +1,28 @@
 package com.example.newsaggregator.ui
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.newsaggregator.data.rss.RssFeed
-import com.example.newsaggregator.data.rss.dto.ChannelDto
-import com.example.newsaggregator.data.rss.dto.ImageDto
-import com.example.newsaggregator.data.rss.dto.RssDto
+import androidx.compose.ui.unit.dp
+import com.example.newsaggregator.presentation.NewsViewModel
 import com.example.newsaggregator.ui.theme.NewsAggregatorTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var rssFeed: RssFeed
+    private val newsViewModel: NewsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,10 +30,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             NewsAggregatorTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        text = "Press me!",
+                    NewsScreen(
                         modifier = Modifier.padding(innerPadding),
-                        feed = rssFeed,
+                        viewModel = newsViewModel,
                     )
                 }
             }
@@ -47,61 +41,84 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(
-    text: String,
+fun NewsScreen(
     modifier: Modifier = Modifier,
-    feed: RssFeed,
+    viewModel: NewsViewModel
 ) {
-    val scope = rememberCoroutineScope()
-    Button(
-        onClick = {
-            Log.d("happy", "done")
-            scope.launch {
-                val r = feed.getRss()
-                r.channel.items.forEach {
-                    Log.d("link", it.link)
-                    Log.d("guid", it.guid)
-                    Log.d("dcDate", it.dcDate)
-                    Log.d("pubDate", it.pubDate)
-                }
-            }
-        }
-    ) {
-        Text(
-            text = text,
-            modifier = modifier,
-        )
-    }
-}
+    val news by viewModel.news.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    NewsAggregatorTheme {
-        val previewRssFeed = object : RssFeed {
-            override suspend fun getRss(query: String): RssDto {
-                return RssDto(
-                    version = "2.0",
-                    channel = ChannelDto(
-                        title = "Preview",
-                        link = "",
-                        description = "",
-                        language = "",
-                        copyright = "",
-                        pubDate = "",
-                        dcDate = "",
-                        dcLanguage = "",
-                        dcRights = "",
-                        image = ImageDto("", "", ""),
-                        items = emptyList()
-                    )
+    Column(modifier = modifier.fillMaxSize()) {
+        NewsLoadingButton { viewModel.loadNews() }
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(16.dp)
                 )
             }
+            error != null -> {
+                Text(
+                    text = error ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            else -> {
+                LazyColumn {
+                    items(news) { newsItem ->
+                        NewsItemCard(newsItem = newsItem)
+                    }
+                }
+            }
         }
-        
-        Greeting(
-            text = "Press me!",
-            feed = previewRssFeed
-        )
+    }
+}
+
+@Composable
+@Stable
+fun NewsLoadingButton( loadNews: () -> Unit ) {
+    Button(
+        onClick = { loadNews() },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Load News")
+    }
+}
+
+@Composable
+fun NewsItemCard(
+    newsItem: com.example.newsaggregator.domain.model.NewsItem,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = newsItem.title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = newsItem.description,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Author: ${newsItem.author}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "Published: ${newsItem.pubDate}",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
