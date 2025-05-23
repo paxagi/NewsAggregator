@@ -1,5 +1,6 @@
 package com.example.newsaggregator.data.repository
 
+import android.util.Log
 import com.example.newsaggregator.data.rss.RssFeed
 import com.example.newsaggregator.domain.model.NewsItem
 import com.example.newsaggregator.domain.repository.NewsRepository
@@ -14,6 +15,11 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun getNews(): Flow<List<NewsItem>> = flow {
         val rss = rssFeed.getRss()
         val news = rss.channel.items.map { item ->
+            val imageUrl = item.contents.firstOrNull()?.url
+            Log.d("NewsRepository", "Item: ${item.title}")
+            Log.d("NewsRepository", "Contents: ${item.contents}")
+            Log.d("NewsRepository", "Image URL: $imageUrl")
+            
             NewsItem(
                 title = item.title,
                 link = item.link,
@@ -21,7 +27,8 @@ class NewsRepositoryImpl @Inject constructor(
                 pubDate = item.pubDate,
                 guid = item.guid,
                 author = item.dcCreator,
-                categories = item.categories.map { it.value }
+                categories = item.categories.map { it.value },
+                imageUrl = imageUrl
             )
         }
         emit(news)

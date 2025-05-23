@@ -7,7 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import nl.adaptivity.xmlutil.serialization.XML
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import javax.inject.Singleton
 
@@ -22,7 +22,7 @@ object NetworkModule {
             .baseUrl("https://www.theguardian.com")
             .addConverterFactory(
                 XML.asConverterFactory(
-                    MediaType.get("application/xml; charset=UTF8")
+                    "application/xml; charset=UTF8".toMediaType()
                 )
             ).build()
     }
